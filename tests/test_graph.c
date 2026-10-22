@@ -275,6 +275,236 @@ void testSelfLoop() {
     printf("PASS: Self-loop rejection\n");
 }
 
+
+int hasNeighbor(
+    const Graph *graph,
+    const AdjList *list,
+    int fromId,
+    int toId
+) {
+
+    int fromIndex = -1;
+    int toIndex = -1;
+
+    for (int i = 0; i < graph->nodeCount; i++) {
+
+        if (graph->nodes[i].id == fromId) {
+            fromIndex = i;
+        }
+
+        if (graph->nodes[i].id == toId) {
+            toIndex = i;
+        }
+    }
+
+    if (fromIndex == -1 || toIndex == -1) {
+        return 0;
+    }
+
+    int current = list->head[fromIndex];
+
+    while (current != -1) {
+
+        if (list->entries[current].neighborIndex == toIndex) {
+            return 1;
+        }
+
+        current = list->entries[current].next;
+    }
+
+    return 0;
+}
+
+
+void testAdjacencyList() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    AdjList list;
+
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    // 8 undirected edges -> 16 adjacency entries
+    assert(list.entryCount == 16);
+
+    // Verify known connections
+    assert(hasNeighbor(&grid, &list, 0, 1) == 1);
+    assert(hasNeighbor(&grid, &list, 1, 0) == 1);
+    assert(hasNeighbor(&grid, &list, 1, 4) == 1);
+    assert(hasNeighbor(&grid, &list, 4, 1) == 1);
+
+    // Verify absent connection
+    assert(hasNeighbor(&grid, &list, 4, 8) == 0);
+
+    printf("PASS: Adjacency list verification\n");
+}
+
+
+
+void testDirectConnectivity() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    AdjList list;
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    assert(areDirectlyConnected(
+        &grid, &list, 1, 4) == 1);
+
+    assert(areDirectlyConnected(
+        &grid, &list, 4, 1) == 1);
+
+    assert(areDirectlyConnected(
+        &grid, &list, 4, 8) == 0);
+
+    printf("PASS: Direct connectivity\n");
+}
+
+void testActiveDegree() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    AdjList list;
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    assert(getActiveDegree(&grid, &list, 0) == 3);
+    assert(getActiveDegree(&grid, &list, 1) == 3);
+    assert(getActiveDegree(&grid, &list, 4) == 1);
+
+    printf("PASS: Active degree verification\n");
+}
+
+void testAdjacencyValidation() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    AdjList list;
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    assert(validateAdjacencyList(&grid, &list) == 1);
+
+    // Simulate failure without rebuilding
+    grid.edges[3].active = 0;
+
+    // Old list must now be detected as inconsistent
+    assert(validateAdjacencyList(&grid, &list) == 0);
+
+    // Rebuild and validate again
+    assert(buildAdjacencyList(&grid, &list) == 1);
+    assert(validateAdjacencyList(&grid, &list) == 1);
+
+    printf("PASS: Adjacency list consistency\n");
+}
+
+
+
+void testNetworkStatsNormal() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    AdjList list;
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    NetworkStats stats;
+
+    assert(calculateNetworkStats(
+        &grid, &list, &stats) == 1);
+
+    assert(stats.totalNodes == 9);
+    assert(stats.totalEdges == 8);
+
+    assert(stats.generators == 1);
+    assert(stats.substations == 3);
+    assert(stats.consumers == 5);
+
+    assert(stats.activeLines == 8);
+    assert(stats.failedLines == 0);
+
+    assert(stats.totalSupply == 100.0);
+    assert(stats.totalDemand == 100.0);
+
+    assert(stats.reachableDemand == 100.0);
+    assert(stats.disconnectedDemand == 0.0);
+
+    assert(stats.criticalDisconnected == 0);
+
+    assert(stats.totalActiveCapacity == 315.0);
+    assert(stats.totalActiveCost == 74.0);
+
+    printf("PASS: Normal network statistics\n");
+}
+
+
+void testNetworkStatsFailure() {
+
+    Graph grid;
+    initializeGraph(&grid);
+
+    assert(loadNetworkFromFile(
+        &grid, "data/network.txt") == 1);
+
+    int found = 0;
+
+    // Fail line 0-1
+    for (int i = 0; i < grid.edgeCount; i++) {
+
+        Edge *edge = &grid.edges[i];
+
+        if ((edge->from == 0 && edge->to == 1) ||
+            (edge->from == 1 && edge->to == 0)) {
+
+            edge->active = 0;
+            found = 1;
+            break;
+        }
+    }
+
+    assert(found == 1);
+
+    AdjList list;
+    assert(buildAdjacencyList(&grid, &list) == 1);
+
+    NetworkStats stats;
+
+    assert(calculateNetworkStats(
+        &grid, &list, &stats) == 1);
+
+    assert(stats.activeLines == 7);
+    assert(stats.failedLines == 1);
+
+    assert(stats.reachableDemand == 55.0);
+    assert(stats.disconnectedDemand == 45.0);
+
+    assert(stats.disconnectedConsumers == 2);
+    assert(stats.criticalDisconnected == 1);
+
+    assert(stats.totalActiveCapacity == 255.0);
+    assert(stats.totalActiveCost == 64.0);
+
+    printf("PASS: Failure network statistics\n");
+}
+
+
 int main() {
 
     printf("\nSMART GRID UNIT TESTS\n\n");
@@ -295,6 +525,14 @@ int main() {
     testNodeDegrees();
     testSelfLoop();
     testNegativeDemand();
+
+    testAdjacencyList();
+
+    testDirectConnectivity();
+    testActiveDegree();
+    testAdjacencyValidation();
+    testNetworkStatsNormal();
+    testNetworkStatsFailure();
 
 
     return 0;

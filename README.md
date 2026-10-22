@@ -198,6 +198,86 @@ The project will be evaluated using:
 - Document algorithm complexity and implementation decisions.
 - Use Git for version control and development history.
 
+
+## Week 1 — Smart Grid Foundation
+
+### Overview
+
+The Smart Grid Power Distribution and Restoration Planner is an offline C-based project that models electrical distribution networks using graph data structures.
+
+The system represents generators, substations, consumers, and transmission lines. It supports network validation, connectivity analysis, failure simulation, and operational reporting.
+
+### Implemented Features
+
+- Node and transmission-line management
+- Edge-list and adjacency-list graph representation
+- Network loading from text files
+- Input validation
+- Interactive command-line interface
+- Active and inactive transmission-line management
+- Direct connectivity and active-degree analysis
+- Isolated-node detection
+- Generator reachability analysis
+- Disconnected-demand calculation
+- Network statistics and reporting
+- Automated unit and integration tests
+
+### Technologies
+
+- C11
+- GCC
+- Standard C library
+- Array-based graph data structures
+
+### Compilation
+
+```bash
+gcc -std=c11 -Wall -Wextra -Iinclude src/main.c src/graph.c -o smartgrid.exe -lm
+```
+
+### Execution
+
+Run from the project root:
+
+```powershell
+.\smartgrid.exe
+```
+
+Load the sample network using:
+
+```text
+data/network.txt
+```
+
+### Testing
+
+```bash
+gcc -std=c11 -Wall -Wextra -Iinclude tests/test_graph.c src/graph.c -o test_graph.exe -lm
+```
+
+Run:
+
+```powershell
+.\test_graph.exe
+```
+
+### Sample Network
+
+The initial network contains:
+
+- 1 generator
+- 3 substations
+- 5 consumers
+- 8 transmission lines
+- 100 MW generation capacity
+- 100 MW total demand
+
+### Future Development
+
+The next development stages will integrate sorting, searching, divide-and-conquer, greedy algorithms, and other DAA techniques for network planning and restoration.
+
+Capacity-constrained power allocation and optimized restoration are not part of the Week 1 implementation.
+
 ## 12. Future Scope
 
 - Larger smart grid networks.

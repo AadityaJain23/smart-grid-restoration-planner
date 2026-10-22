@@ -49,4 +49,165 @@ void displayNodes(const Graph *graph);
 void displayEdges(const Graph *graph);
 int loadNetworkFromFile(Graph *graph, const char *filename);
 
+
+typedef struct {
+    int neighborIndex;
+    int edgeIndex;
+    int next;
+} AdjEntry;
+
+typedef struct {
+    int head[MAX_NODES];
+    AdjEntry entries[2 * MAX_EDGES];
+    int entryCount;
+} AdjList;
+
+
+
+void initializeAdjList(AdjList *list);
+
+int buildAdjacencyList(
+    const Graph *graph,
+    AdjList *list
+);
+
+void displayAdjacencyList(
+    const Graph *graph,
+    const AdjList *list
+);
+
+void displayNetworkConnections(
+    const Graph *graph,
+    const AdjList *list
+);
+
+
+
+int areDirectlyConnected(
+    const Graph *graph,
+    const AdjList *list,
+    int fromId,
+    int toId
+);
+
+int getActiveDegree(
+    const Graph *graph,
+    const AdjList *list,
+    int nodeId
+);
+
+void displayIsolatedNodes(
+    const Graph *graph,
+    const AdjList *list
+);
+
+int validateAdjacencyList(
+    const Graph *graph,
+    const AdjList *list
+);
+
+int validateNodeData(const Node *node);
+
+int validateEdgeData(const Edge *edge);
+
+
+// int validateEdgeData(const Edge *edge) {
+
+//     if (edge == NULL) {
+//         return 0;
+//     }
+
+//     if (edge->from < 0 || edge->to < 0) {
+//         return 0;
+//     }
+
+//     if (edge->from == edge->to) {
+//         return 0;
+//     }
+
+//     if (!isfinite(edge->distance) ||
+//         !isfinite(edge->capacity) ||
+//         !isfinite(edge->cost)) {
+//         return 0;
+//     }
+
+//     if (edge->distance <= 0 ||
+//         edge->capacity <= 0 ||
+//         edge->cost < 0) {
+//         return 0;
+//     }
+
+//     if (edge->active != 0 && edge->active != 1) {
+//         return 0;
+//     }
+
+//     return 1;
+// }
+
+void findGeneratorReachability(
+    const Graph *graph,
+    const AdjList *list,
+    int reachable[MAX_NODES]
+);
+
+void displayDisconnectedLoads(
+    const Graph *graph,
+    const AdjList *list
+);
+
+
+int validateNodeData(const Node *node);
+
+int validateEdgeData(const Edge *edge);
+
+void findGeneratorReachability(
+    const Graph *graph,
+    const AdjList *list,
+    int reachable[MAX_NODES]
+);
+
+void displayDisconnectedLoads(
+    const Graph *graph,
+    const AdjList *list
+);
+
+
+typedef struct {
+
+    int totalNodes;
+    int totalEdges;
+
+    int generators;
+    int substations;
+    int consumers;
+
+    int activeLines;
+    int failedLines;
+
+    int disconnectedConsumers;
+    int criticalDisconnected;
+
+    double totalSupply;
+    double totalDemand;
+
+    double reachableDemand;
+    double disconnectedDemand;
+
+    double totalActiveCapacity;
+    double totalActiveCost;
+
+} NetworkStats;
+
+
+int calculateNetworkStats(
+    const Graph *graph,
+    const AdjList *list,
+    NetworkStats *stats
+);
+
+void displayNetworkReport(
+    const NetworkStats *stats
+);
+
+
 #endif
