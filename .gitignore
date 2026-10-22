@@ -1,18 +1,15 @@
 # Compiled executables
 *.exe
 *.out
+
+# Object files
 *.o
 *.obj
-
-# Build output
-build/
-bin/
-
-# Editor and operating system files
-.vscode/
-.DS_Store
-Thumbs.db
 
 # Temporary files
 *.tmp
 *.log
+
+# Editor files
+.vscode/
+.idea/
