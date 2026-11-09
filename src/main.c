@@ -3,7 +3,11 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include "graph.h"
+#include "sorting.h"
+#include "searching.h"
+#include "divide_conquer.h"
 
 /* Read a complete input line. Return 1 on success, 0 on EOF/error. */
 static int readLine(const char *prompt, char *buffer, size_t size) {
@@ -59,6 +63,61 @@ static int readInt(const char *prompt, int *value) {
     return 1;
 }
 
+/* Read a finite floating-point number using the existing line input helper. */
+static int readDouble(const char *prompt, double *value) {
+    char buffer[128];
+    char *end;
+    double parsed;
+    if (value == NULL || !readLine(prompt, buffer, sizeof(buffer))) return 0;
+    errno = 0;
+    parsed = strtod(buffer, &end);
+    if (end == buffer || errno == ERANGE || !isfinite(parsed)) {
+        printf("Error: Enter a finite number.\n");
+        return -1;
+    }
+    while (*end == ' ' || *end == '\t' || *end == '\r') end++;
+    if (*end != '\0') {
+        printf("Error: Enter only one number.\n");
+        return -1;
+    }
+    *value = parsed;
+    return 1;
+}
+
+#define MAX_DEMAND_OBSERVATIONS 10000
+
+/* File format: count followed by exactly count finite demand changes. */
+static int loadDemandChanges(const char *path, double values[], int *count) {
+    FILE *file = fopen(path, "r");
+    int n;
+    char trailing;
+    if (file == NULL) {
+        printf("Error: Cannot open demand-change file.\n");
+        return 0;
+    }
+    if (fscanf(file, "%d", &n) != 1 || n <= 0 ||
+        n > MAX_DEMAND_OBSERVATIONS) {
+        printf("Error: Invalid demand observation count.\n");
+        fclose(file);
+        return 0;
+    }
+    for (int i = 0; i < n; i++) {
+        if (fscanf(file, "%lf", &values[i]) != 1 || !isfinite(values[i])) {
+            printf("Error: Invalid demand-change value.\n");
+            fclose(file);
+            return 0;
+        }
+    }
+    if (fscanf(file, " %c", &trailing) == 1 || ferror(file)) {
+        printf("Error: Unexpected trailing data.\n");
+        fclose(file);
+        return 0;
+    }
+    fclose(file);
+    *count = n;
+    return 1;
+}
+
 static void displayMenu(void) {
     printf("\n========== SMART GRID PLANNER ==========\n");
     printf(" 1. Load network from file\n");
@@ -73,6 +132,13 @@ static void displayMenu(void) {
     printf("10. Display adjacency list\n");
     printf("11. Check active degree\n");
     printf("12. Display disconnected loads\n");
+    printf("\n========== WEEK 2 ANALYSIS ==========\n");
+    printf("13. Consumers sorted by demand\n");
+    printf("14. Transmission lines sorted by cost\n");
+    printf("15. Search node by ID (iterative)\n");
+    printf("16. Search node by ID (recursive)\n");
+    printf("17. Analyze maximum demand surge\n");
+    printf("18. Project future electricity demand\n");
     printf(" 0. Exit\n");
     printf("========================================\n");
 }
@@ -200,7 +266,7 @@ int main(void) {
             }
             continue;
         }
-        if (choice < 0 || choice > 12) {
+        if (choice < 0 || choice > 18) {
             printf("Invalid menu choice.\n");
             continue;
         }
@@ -270,7 +336,99 @@ int main(void) {
                 break;
             case 12:
                 displayDisconnectedLoads(&grid, &list);
-            break;
+                break;
+            case 13: {
+                int indices[MAX_NODES];
+                int count = extractConsumerIndices(&grid, indices);
+                if (count < 0) printf("Error: Cannot extract consumers.\n");
+                else if (count == 0) printf("No consumers available.\n");
+                else {
+                    mergeSortConsumers(&grid, indices, 0, count - 1);
+                    displayConsumerOrder(&grid, indices, count);
+                }
+                break;
+            }
+            case 14: {
+                int indices[MAX_EDGES];
+                int count = extractEdgeIndices(&grid, indices);
+                if (count < 0) printf("Error: Cannot extract lines.\n");
+                else if (count == 0) printf("No transmission lines available.\n");
+                else {
+                    quickSortEdges(&grid, indices, 0, count - 1);
+                    displaySortedEdges(&grid, indices, count);
+                }
+                break;
+            }
+            case 15:
+            case 16: {
+                int targetID;
+                int indices[MAX_NODES];
+                int count;
+                int index;
+                result = readInt("Node ID to search: ", &targetID);
+                if (result != 1) break;
+                count = prepareSortedNodeIndices(&grid, indices);
+                if (count < 0) {
+                    printf("Error: Cannot prepare node index.\n");
+                    break;
+                }
+                index = choice == 15
+                    ? iterativeBinarySearchNode(&grid, indices, count, targetID)
+                    : recursiveBinarySearchNode(&grid, indices, count, targetID);
+                if (index < 0) printf("Node ID %d not found.\n", targetID);
+                else {
+                    const Node *node = &grid.nodes[index];
+                    printf("Found node: ID=%d, Name=%s, Type=%d, "
+                           "Demand=%.2f MW, Supply=%.2f MW, Priority=%d\n",
+                           node->id, node->name, (int)node->type,
+                           node->demand, node->supply, node->priority);
+                }
+                break;
+            }
+            case 17: {
+                double changes[MAX_DEMAND_OBSERVATIONS];
+                int count;
+                SubarrayResult peak;
+                if (!readLine("Demand file (e.g. data/demand_changes.txt): ",
+                              filename, sizeof(filename))) {
+                    printf("Input closed.\n");
+                    break;
+                }
+                if (filename[0] == '\0') {
+                    printf("Error: File path cannot be empty.\n");
+                    break;
+                }
+                if (!loadDemandChanges(filename, changes, &count)) break;
+                if (!maximumSubarray(changes, count, &peak)) {
+                    printf("Error: Demand analysis failed.\n");
+                    break;
+                }
+                printf("Maximum cumulative demand increase: %.2f MW\n", peak.sum);
+                printf("Observation interval (zero-based): %d to %d\n",
+                       peak.start, peak.end);
+                break;
+            }
+            case 18: {
+                double initialDemand, ratePercent, projected;
+                int years;
+                result = readDouble("Initial demand (MW): ", &initialDemand);
+                if (result != 1) break;
+                result = readDouble("Annual growth rate (percent): ", &ratePercent);
+                if (result != 1) break;
+                result = readInt("Years (nonnegative integer): ", &years);
+                if (result != 1) break;
+                if (initialDemand < 0 || ratePercent < -100 || years < 0) {
+                    printf("Error: Invalid demand, growth rate, or years.\n");
+                    break;
+                }
+                if (!projectDemand(initialDemand, ratePercent / 100.0,
+                                   (unsigned int)years, &projected)) {
+                    printf("Error: Projection could not be calculated.\n");
+                    break;
+                }
+                printf("Projected demand: %.2f MW\n", projected);
+                break;
+            }
         }
     }
     return 0;

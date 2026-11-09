@@ -49,3 +49,44 @@ Week 1 is considered complete when:
 ## 5. Final Test Result
 
 Pending final execution and verification.
+
+
+
+## Week 2 — Testing and Verification
+
+### Algorithms
+- Merge Sort
+- Quick Sort
+- Iterative Binary Search
+- Recursive Binary Search
+- Maximum Subarray
+- Fast Exponentiation
+
+### Unit Tests
+- tests/test_graph.c
+- tests/test_sorting.c
+- tests/test_searching.c
+- tests/test_divide_conquer.c
+
+### Integration Test
+- tests/test_week2_integration.c
+
+### Verification Criteria
+1. All programs compile using C11.
+2. No compiler warnings.
+3. All assertions pass.
+4. Sorting preserves original graph records.
+5. Both Binary Search implementations agree.
+6. Invalid inputs are handled safely.
+7. Line failures update the adjacency list.
+8. Restoration restores the expected network state.
+9. CLI options 1-18 operate correctly.
+
+### Actual Results
+Record the date, command, result and any warnings
+after executing each test.
+
+### Known Limitations
+- Reachability does not prove power-flow feasibility.
+- Capacity-aware allocation is not yet implemented.
+- Automatic restoration planning is not yet implemented.
