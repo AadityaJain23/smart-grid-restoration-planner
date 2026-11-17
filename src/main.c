@@ -8,7 +8,7 @@
 #include "sorting.h"
 #include "searching.h"
 #include "divide_conquer.h"
-
+#include "maxflow.h"
 #include "routing.h"
 #include "mst.h"
 #include "restoration.h"
@@ -152,6 +152,8 @@ static void displayMenu(void) {
     printf("20. Prim minimum spanning tree\n");
     printf("21. Kruskal minimum spanning tree\n");
     printf("22. Capacity-aware power allocation\n");
+    printf("22. Capacity-Aware Power Restoration\n");
+    printf("23. Edmonds-Karp Maximum Flow\n");
 
 }
 
@@ -278,7 +280,7 @@ int main(void) {
             }
             continue;
         }
-        if (choice < 0 || choice > 22) {
+        if (choice < 0 || choice > 23) {
             printf("Invalid menu choice.\n");
             continue;
         }
@@ -506,21 +508,27 @@ int main(void) {
             }
 
 
-            case 22: {
-                RestorationResult restoration;
+            
+            case 23:
+            {
+                MaxFlowResult flowResult = {0};
 
-                if (!planPowerRestoration(
-                        &grid, &list, &restoration)) {
-                    printf("Error: Power allocation failed.\n");
+                if (grid.nodeCount == 0) {
+                    printf("Error: Please load a network first.\n");
                     break;
                 }
 
-                displayRestorationReport(
-                    &grid, &restoration
-                );
+                if (!calculateMaximumFlow(&grid, &flowResult)) {
+                    printf("Error: Maximum Flow calculation failed.\n");
+                    break;
+                }
+
+                displayMaximumFlowReport(&grid, &flowResult);
 
                 break;
             }
+
+
 
 
         }
