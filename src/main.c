@@ -9,6 +9,11 @@
 #include "searching.h"
 #include "divide_conquer.h"
 
+#include "routing.h"
+#include "mst.h"
+#include "restoration.h"
+
+
 /* Read a complete input line. Return 1 on success, 0 on EOF/error. */
 static int readLine(const char *prompt, char *buffer, size_t size) {
     int ch;
@@ -141,6 +146,13 @@ static void displayMenu(void) {
     printf("18. Project future electricity demand\n");
     printf(" 0. Exit\n");
     printf("========================================\n");
+
+    printf("\n========== WEEK 3 GRAPH OPTIMIZATION ==========\n");
+    printf("19. Dijkstra shortest path\n");
+    printf("20. Prim minimum spanning tree\n");
+    printf("21. Kruskal minimum spanning tree\n");
+    printf("22. Capacity-aware power allocation\n");
+
 }
 
 // static void displayNetworkSummary(const Graph *graph) {
@@ -266,7 +278,7 @@ int main(void) {
             }
             continue;
         }
-        if (choice < 0 || choice > 18) {
+        if (choice < 0 || choice > 22) {
             printf("Invalid menu choice.\n");
             continue;
         }
@@ -429,6 +441,88 @@ int main(void) {
                 printf("Projected demand: %.2f MW\n", projected);
                 break;
             }
+
+
+            case 19: {
+                int sourceId;
+                int destinationId;
+                DijkstraResult route;
+
+                result = readInt("Source node ID: ", &sourceId);
+                if (result != 1) break;
+
+                result = readInt(
+                    "Destination node ID: ", &destinationId
+                );
+                if (result != 1) break;
+
+                if (!dijkstraShortestPaths(
+                        &grid, &list, sourceId, &route)) {
+                    printf("Error: Dijkstra calculation failed.\n");
+                    break;
+                }
+
+                displayShortestPath(
+                    &grid, &route, destinationId
+                );
+
+                break;
+            }
+
+
+            case 20: {
+                int startId;
+                PrimResult prim;
+
+                result = readInt(
+                    "Starting node ID for Prim: ", &startId
+                );
+                if (result != 1) break;
+
+                if (!primMinimumSpanningTree(
+                        &grid, &list, startId, &prim)) {
+                    printf("Error: Prim calculation failed.\n");
+                    break;
+                }
+
+                displayPrimMST(&grid, &prim);
+
+                break;
+            }
+
+
+            case 21: {
+                KruskalResult kruskal;
+
+                if (!kruskalMinimumSpanningTree(
+                        &grid, &list, &kruskal)) {
+                    printf("Error: Kruskal calculation failed.\n");
+                    break;
+                }
+
+                displayKruskalMST(&grid, &kruskal);
+
+                break;
+            }
+
+
+            case 22: {
+                RestorationResult restoration;
+
+                if (!planPowerRestoration(
+                        &grid, &list, &restoration)) {
+                    printf("Error: Power allocation failed.\n");
+                    break;
+                }
+
+                displayRestorationReport(
+                    &grid, &restoration
+                );
+
+                break;
+            }
+
+
         }
     }
     return 0;

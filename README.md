@@ -1,46 +1,38 @@
-
 # Smart Grid Power Distribution and Restoration Planner
 
 ## Overview
 
-A C11-based, offline, menu-driven smart-grid simulation
-for representing electricity infrastructure, analyzing
-network connectivity, simulating transmission-line
-failures, and performing demand-related analysis.
+An offline, menu-driven C11 application for modeling a simplified electricity distribution network, analyzing transmission-line failures, finding economical routes, evaluating minimum-cost connectivity and planning priority-based power allocation.
 
-## Current Features
+## Features
 
-### Network Foundation
-- Generator, substation, and consumer records
-- Edge-list and adjacency-list graph representation
-- Network loading and validation
-- Transmission-line failure and restoration
-- Generator reachability
-- Disconnected-demand reporting
-- Network statistics
-
-### Sorting and Searching
-- Merge Sort: consumer demand ranking
-- Quick Sort: transmission-line cost ranking
-- Iterative Binary Search: node-ID lookup
-- Recursive Binary Search: node-ID lookup
-
-### Demand Analysis
-- Maximum Subarray: cumulative demand-surge analysis
-- Fast Exponentiation: compound demand projection
+- Graph representation using edge lists and adjacency lists
+- Network loading and input validation
+- Transmission-line failure and restoration simulation
+- Generator reachability and disconnected-demand analysis
+- Merge Sort and Quick Sort for demand and line-cost analysis
+- Iterative and recursive Binary Search
+- Maximum Subarray demand-surge analysis
+- Fast Exponentiation for demand projection
+- Dijkstra's shortest-path algorithm
+- Prim's and Kruskal's minimum spanning tree algorithms
+- Disjoint Set Union with path compression and union by rank
+- Priority-based, capacity-aware restoration heuristic
 
 ## Technology
 
 - Language: C11
 - Compiler: GCC
-- Interface: Command Line
-- Platform: Windows / PowerShell
-- External dependencies: None
+- Interface: Command-line interface
+- Development environment: VS Code and Windows PowerShell
+- Dependencies: Standard C library
 
 ## Build
 
+From the repository root:
+
 ```powershell
-gcc -std=c11 -Wall -Wextra -Wpedantic -Iinclude src/main.c src/graph.c src/sorting.c src/searching.c src/divide_conquer.c -o smartgrid.exe -lm
+gcc -std=c11 -Wall -Wextra -Wpedantic -Iinclude src/main.c src/graph.c src/sorting.c src/searching.c src/divide_conquer.c src/routing.c src/mst.c src/dsu.c src/restoration.c -o smartgrid.exe -lm
 ```
 
 ## Run
@@ -49,28 +41,31 @@ gcc -std=c11 -Wall -Wextra -Wpedantic -Iinclude src/main.c src/graph.c src/sorti
 .\smartgrid.exe
 ```
 
-Load `data/network.txt` using menu option 1.
+Load a network using menu option 1.
+
+Available sample networks:
+
+- `data/network.txt`
+- `data/network_redundant.txt`
+
+The demand-change dataset is stored in `data/demand_changes.txt`.
 
 ## Testing
 
-Automated tests are available in the `tests/` folder.
+Automated tests are available in the `tests/` directory.
 
-See `docs/testing.md` for compilation commands
-and verification scenarios.
+The reported Week 3 test suites cover Dijkstra, DSU, minimum spanning trees and capacity-aware restoration.
 
-## Current Limitations
+## Important Limitations
 
-The current system evaluates graph connectivity
-and supporting demand analysis.
+This project is a graph-based educational simulation.
 
-It does not yet implement:
-- Capacity-constrained power allocation
-- Minimum-cost power routing
-- Automatic restoration optimization
-- Physical AC power-flow simulation
+Its restoration module uses a sequential greedy allocation heuristic and simplified transmission-line capacity accounting. It does not implement physical AC power flow, voltage calculations, reactive power or globally optimal electricity dispatch.
 
-## Future Development
+## Future Improvements
 
-Add meaningful graph optimization and restoration
-algorithms while preserving the existing modular
-architecture.
+- More advanced network-flow optimization
+- Improved routing under shared capacity constraints
+- Larger network benchmarking
+- Additional restoration scenarios
+- Enhanced reporting and visualization
