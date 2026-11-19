@@ -12,6 +12,8 @@
 #include "routing.h"
 #include "mst.h"
 #include "restoration.h"
+#include "priority_flow.h"
+
 
 
 /* Read a complete input line. Return 1 on success, 0 on EOF/error. */
@@ -151,9 +153,10 @@ static void displayMenu(void) {
     printf("19. Dijkstra shortest path\n");
     printf("20. Prim minimum spanning tree\n");
     printf("21. Kruskal minimum spanning tree\n");
-    printf("22. Capacity-aware power allocation\n");
     printf("22. Capacity-Aware Power Restoration\n");
     printf("23. Edmonds-Karp Maximum Flow\n");
+    printf("24. Priority-Aware Maximum Flow\n");
+
 
 }
 
@@ -280,7 +283,7 @@ int main(void) {
             }
             continue;
         }
-        if (choice < 0 || choice > 23) {
+        if (choice < 0 || choice > 24) {
             printf("Invalid menu choice.\n");
             continue;
         }
@@ -527,6 +530,41 @@ int main(void) {
 
                 break;
             }
+
+
+            case 24:
+            {
+                PriorityFlowResult priorityResult = {0};
+
+                /*
+                * Verify that a network is available.
+                */
+                if (!loaded || grid.nodeCount == 0) {
+                    printf("Error: Please load a network first.\n");
+                    break;
+                }
+
+                /*
+                * Calculate lexicographically optimal
+                * priority-aware electricity allocation.
+                */
+                if (!calculatePriorityFlow(
+                        &grid, &priorityResult)) {
+
+                    printf("Error: Priority-Aware Flow calculation failed.\n");
+                    break;
+                }
+
+                /*
+                * Display the final allocation report.
+                */
+                displayPriorityFlowReport(
+                    &grid, &priorityResult
+                );
+
+                break;
+            }
+
 
 
 
