@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "reliability.h"
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -11,9 +12,10 @@
 #include "maxflow.h"
 #include "routing.h"
 #include "mst.h"
+#include "failure_impact.h"
 #include "restoration.h"
 #include "priority_flow.h"
-
+#include "automated_restoration.h"
 
 
 /* Read a complete input line. Return 1 on success, 0 on EOF/error. */
@@ -156,6 +158,10 @@ static void displayMenu(void) {
     printf("22. Capacity-Aware Power Restoration\n");
     printf("23. Edmonds-Karp Maximum Flow\n");
     printf("24. Priority-Aware Maximum Flow\n");
+    printf("25. Detect Critical Transmission Lines\n");
+    printf("26. Detect Critical Network Nodes\n");
+    printf("27. Multiple-Line Failure Impact Analysis\n");
+    printf("28. Automated Priority-Aware Restoration Analysis\n");
 
 
 }
@@ -283,7 +289,7 @@ int main(void) {
             }
             continue;
         }
-        if (choice < 0 || choice > 24) {
+        if (choice < 0 || choice > 28) {
             printf("Invalid menu choice.\n");
             continue;
         }
@@ -565,7 +571,286 @@ int main(void) {
                 break;
             }
 
+            case 25:
+            {
+                ReliabilityResult result = {0};
 
+                if (!validateAdjacencyList(&grid, &list)) {
+                    printf("Error: Load a valid network first.\n");
+                    break;
+                }
+
+                if (!findCriticalBridges(&grid, &list, &result)) {
+                    printf("Bridge detection failed.\n");
+                    break;
+                }
+
+                printf("\n===== CRITICAL TRANSMISSION LINES =====\n");
+
+                if (result.bridgeCount == 0) {
+                    printf("No critical transmission lines found.\n");
+                }
+
+                for (int i = 0; i < result.bridgeCount; i++) {
+
+                    int edgeIndex = result.bridgeEdgeIndices[i];
+                    const Edge *edge = &grid.edges[edgeIndex];
+
+                    printf(
+                        "Line %d: %d <-> %d | Capacity: %.2f MW\n",
+                        edgeIndex,
+                        edge->from,
+                        edge->to,
+                        edge->capacity
+                    );
+                }
+
+                printf("Total Critical Lines: %d\n",
+                    result.bridgeCount);
+
+                break;
+            }
+
+            case 26:
+            {
+                ReliabilityResult result = {0};
+
+                if (!validateAdjacencyList(&grid, &list)) {
+                    printf("Error: Load a valid network first.\n");
+                    break;
+                }
+
+                if (!findArticulationPoints(&grid, &list, &result)) {
+                    printf("Articulation point detection failed.\n");
+                    break;
+                }
+
+                printf("\n===== CRITICAL NETWORK NODES =====\n");
+
+                if (result.articulationCount == 0) {
+                    printf("No articulation points found.\n");
+                }
+
+                for (int i = 0; i < result.articulationCount; i++) {
+
+                    int nodeIndex =
+                        result.articulationNodeIndices[i];
+
+                    const Node *node = &grid.nodes[nodeIndex];
+
+                    printf(
+                        "Node ID: %d | Name: %s | Type: %d\n",
+                        node->id,
+                        node->name,
+                        (int)node->type
+                    );
+                }
+
+                printf("Total Critical Nodes: %d\n",
+                    result.articulationCount);
+
+                break;
+            }
+
+
+            case 27:
+            {
+                int failureCount;
+                int failedEdges[MAX_EDGES];
+                int validInput = 1;
+
+                FailureImpactResult impact = {0};
+
+                printf("\n===== MULTIPLE-LINE FAILURE ANALYSIS =====\n");
+
+                /*
+                * Validate the current network.
+                */
+                if (!validateAdjacencyList(&grid, &list)) {
+                    printf("Error: Invalid network adjacency list.\n");
+                    break;
+                }
+
+                /*
+                * Read number of transmission lines to fail.
+                */
+                result = readInt(
+                    "Number of lines to fail: ",
+                    &failureCount
+                );
+
+                if (result != 1) {
+                    break;
+                }
+
+                if (failureCount < 1 ||
+                    failureCount > grid.edgeCount) {
+
+                    printf("Error: Invalid failure count.\n");
+                    break;
+                }
+
+                /*
+                * Read original transmission-line indices.
+                */
+                for (int i = 0; i < failureCount; i++) {
+
+                    char prompt[80];
+
+                    snprintf(
+                        prompt,
+                        sizeof(prompt),
+                        "Enter line index %d: ",
+                        i + 1
+                    );
+
+                    result = readInt(
+                        prompt,
+                        &failedEdges[i]
+                    );
+
+                    if (result != 1) {
+                        validInput = 0;
+                        break;
+                    }
+                }
+
+                if (!validInput) {
+                    printf("Failure analysis cancelled.\n");
+                    break;
+                }
+
+                /*
+                * Run simulation on a temporary graph copy.
+                */
+                if (!analyzeMultipleLineFailures(
+                        &grid,
+                        failedEdges,
+                        failureCount,
+                        &impact)) {
+
+                    printf(
+                        "Error: Multiple-line failure analysis failed.\n"
+                    );
+
+                    printf(
+                        "Check for invalid, duplicate, or inactive lines.\n"
+                    );
+
+                    break;
+                }
+
+                /*
+                * Display simulated failure impact.
+                */
+                displayFailureImpactReport(&impact);
+
+                break;
+            }
+
+
+            case 28:
+            {
+                int failureCount;
+                int failedEdges[MAX_EDGES];
+                int validInput = 1;
+
+                AutomatedRestorationResult restoration = {0};
+
+                printf("\n========================================\n");
+                printf(" AUTOMATED PRIORITY RESTORATION ANALYSIS\n");
+                printf("========================================\n");
+
+                /*
+                * Step 1: Validate the existing network.
+                */
+                if (!validateAdjacencyList(&grid, &list)) {
+                    printf("Error: Invalid network adjacency list.\n");
+                    break;
+                }
+
+                /*
+                * Step 2: Read the number of failures.
+                */
+                result = readInt(
+                    "Number of transmission lines to fail: ",
+                    &failureCount
+                );
+
+                if (result != 1) {
+                    break;
+                }
+
+                if (failureCount < 1 ||
+                    failureCount > grid.edgeCount) {
+
+                    printf("Error: Invalid failure count.\n");
+                    break;
+                }
+
+                /*
+                * Step 3: Read transmission-line indices.
+                */
+                for (int i = 0; i < failureCount; i++) {
+
+                    char prompt[80];
+
+                    snprintf(
+                        prompt,
+                        sizeof(prompt),
+                        "Enter transmission line index %d: ",
+                        i + 1
+                    );
+
+                    result = readInt(
+                        prompt,
+                        &failedEdges[i]
+                    );
+
+                    if (result != 1) {
+                        validInput = 0;
+                        break;
+                    }
+                }
+
+                if (!validInput) {
+                    printf("Restoration analysis cancelled.\n");
+                    break;
+                }
+
+                /*
+                * Step 4: Calculate before-and-after
+                * priority-aware power allocation.
+                *
+                * The original graph is not modified.
+                */
+                if (!analyzeAutomatedRestoration(
+                        &grid,
+                        failedEdges,
+                        failureCount,
+                        &restoration)) {
+
+                    printf(
+                        "Error: Automated restoration analysis failed.\n"
+                    );
+
+                    printf(
+                        "Check for invalid, duplicate, or inactive lines.\n"
+                    );
+
+                    break;
+                }
+
+                /*
+                * Step 5: Display the comparison report.
+                */
+                displayAutomatedRestorationReport(
+                    &grid,
+                    &restoration
+                );
+
+                break;
+            }
 
 
 
